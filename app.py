@@ -6,35 +6,51 @@ import random
 from datetime import datetime, time
 import plotly.express as px
 
-# 1. 페이지 설정 및 아이콘 수정 (🌟 -> ☀️)
+# 1. 페이지 설정 및 아이콘 수정
 st.set_page_config(page_title="하루로그", layout="wide")
 st.title("☀️ 하루로그: 활동 별 기분과 성취감 기록하기")
 
-# 2. 격려 메시지 로직 (기존 동일)
+# 2. 격려 메시지
 REFLECTION_MESSAGES = {
-    # ... (생략 - 기존 내용 유지) ...
+    ("high", "high"): ["오늘은 기분도 좋고 성취감도 높은 날이었네요. 이런 순간을 잘 기억해 두세요.", "에너지가 넘쳤던 하루였군요. 스스로를 충분히 칭찬해도 좋습니다."],
+    ("high", "mid"): ["기분 좋게 활동을 마쳤군요. 꾸준히 이어가다 보면 성취감도 자연스럽게 따라올 거예요.", "오늘 활동이 즐거웠다면 그것만으로도 충분해요."],
+    ("high", "low"): ["오늘은 마음 편하게 쉬어가는 시간이었군요. 가끔은 그런 여유도 필요합니다.", "부담 없이 즐긴 활동이었군요. 그런 여백이 있어야 더 잘 달릴 수 있어요."],
+    ("mid", "high"): ["기분은 평소와 비슷했지만 활동에서 뿌듯함을 느꼈군요. 그 성취감을 소중히 여겨 보세요.", "묵묵히 해낸 날이에요. 감정과 무관하게 무언가를 이뤄낸 스스로를 인정해 주세요."],
+    ("mid", "mid"): ["오늘은 무난하게 흘러간 하루였군요. 평범한 하루가 쌓여 큰 변화를 만듭니다.", "특별하지 않아도 괜찮아요. 꾸준함이 가장 강한 힘입니다."],
+    ("mid", "low"): ["오늘은 가볍게 지나간 시간이었군요. 내일 더 집중해 볼 기회가 있을 거예요.", "쉬어가는 날도 필요해요. 오늘은 그런 날이었을 수 있습니다."],
+    ("low", "high"): ["기분이 조금 가라앉아 있었지만, 그 안에서도 의미 있는 일을 해냈군요. 정말 대단합니다.", "마음이 무거운 날에도 성취감을 느낀 활동이었군요."],
+    ("low", "mid"): ["기분이 조금 가라앉은 날이었지만 그래도 활동을 이어갔군요. 그것만으로도 충분합니다.", "힘든 날에도 기록을 남긴 자신을 격려해 주세요."],
+    ("low", "low"): ["오늘은 몸도 마음도 조금 지쳐있는 날이었군요. 충분히 쉬고 내일을 기대해 보세요.", "기분도 성취감도 낮은 날이지만, 기록으로 남긴 것 자체가 내일을 위한 발걸음이에요."]
 }
+
 def get_bucket(score):
     if score >= 4: return "high"
     elif score >= 2: return "mid"
     else: return "low"
 
-# 3. 데이터 로드/저장 (기존 동일)
+# 3. 데이터 로드/저장
 DATA_FILE = "tracker_data_v3.json"
 def load_data():
-    # ... (생략 - 기존 내용 유지) ...
-    pass
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            try:
+                data = json.load(f)
+                for entry in data:
+                    if "sort_key" not in entry:
+                        entry["sort_key"] = f"{entry.get('date', '2026-05-14')} {entry.get('start', '00:00')}"
+                return data
+            except: return []
+    return []
 
 def save_data(entries):
-    # ... (생략 - 기존 내용 유지) ...
-    pass
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(entries, f, indent=2, ensure_ascii=False)
 
 entries = load_data()
 
-# --------------------------------------------------
-# 4. [복구] 활동 기록 입력창 (Sidebar) - 사라진 부분
+# 4. 사이드바 입력창 (복구 완료)
 with st.sidebar:
-    st.header("📝 오늘 활동 기록")
+    st.header("📝 활동 기록")
     record_date = st.date_input("활동 날짜", datetime.now())
     col1, col2 = st.columns(2)
     with col1: start_t = st.time_input("시작 시각", time(9, 0))
@@ -47,10 +63,8 @@ with st.sidebar:
     notes = st.text_area("메모/느낀 점")
     
     if st.button("기록 저장 및 분석"):
-        # 저장 로직은 복구했습니다.
         weekdays = ['월', '화', '수', '목', '금', '토', '일']
         activity_dt = datetime.combine(record_date, start_t)
-        
         m_bucket, a_bucket = get_bucket(mood), get_bucket(ach)
         reflection = random.choice(REFLECTION_MESSAGES.get((m_bucket, a_bucket), ["오늘도 수고하셨습니다."]))
         
@@ -73,16 +87,13 @@ with st.sidebar:
         save_data(entries)
         st.balloons()
         st.rerun()
-# --------------------------------------------------
 
-# 5. 메인 화면 분석 (기능 유지 및 아이콘 수정)
+# 5. 메인 화면 분석
 if entries:
     df = pd.DataFrame(entries)
     df = df.sort_values(by="sort_key")
 
-    # 교수님 요청 사항: 그래프 제목 아이콘 변경 (☀️ -> 🌙)
     st.subheader("🌙 활동 시각별 마음의 변화")
-    
     fig = px.line(df, x="display_time", y=["mood", "achievement"], 
                   markers=True, 
                   hover_data={"display_time": True, "sub_activity": True},
@@ -92,5 +103,29 @@ if entries:
 
     st.divider()
     
-    # 다차원 데이터 필터링 (생략 - 기존 내용 유지)
-    # ... (이하 필터링 및 리스트 로직 동일) ...
+    st.subheader("🔍 다차원 데이터 필터링")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: f_cat = st.multiselect("활동 종류", df['category'].unique())
+    with c2: f_day = st.multiselect("요일 선택", ['월', '화', '수', '목', '금', '토', '일'])
+    with c3: f_mood = st.multiselect("기분 수준", [1, 2, 3, 4, 5])
+    with c4: f_ach = st.multiselect("성취감 수준", [1, 2, 3, 4, 5])
+
+    f_df = df.copy()
+    if f_cat: f_df = f_df[f_df['category'].isin(f_cat)]
+    if f_day: f_df = f_df[f_df['day_of_week'].isin(f_day)]
+    if f_mood: f_df = f_df[f_df['mood'].isin(f_mood)]
+    if f_ach: f_df = f_df[f_df['achievement'].isin(f_ach)]
+
+    st.write(f"결과: {len(f_df)}건의 기록이 있습니다.")
+
+    for i, row in f_df.iloc[::-1].iterrows():
+        with st.expander(f"[{row['date']}({row.get('day_of_week', '-')})] {row['start']}~{row['end']} | {row['category']} - {row['sub_activity']}"):
+            st.write(f"**기분:** {row['mood']} / **성취감:** {row['achievement']}")
+            st.write(f"**메모:** {row['notes']}")
+            st.info(f"💡 {row['reflection']}")
+            if st.button("삭제", key=f"del_{row['id']}"):
+                entries = [e for e in entries if e['id'] != row['id']]
+                save_data(entries)
+                st.rerun()
+else:
+    st.info("왼쪽 사이드바에서 오늘 첫 활동을 기록해 보세요!")
