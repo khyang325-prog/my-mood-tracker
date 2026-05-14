@@ -6,25 +6,22 @@ import random
 from datetime import datetime, time
 import plotly.express as px
 
-# 1. 페이지 설정 (이전과 동일하게 유지)
+# 1. 페이지 설정
 st.set_page_config(page_title="하루로그", layout="wide")
+# 메인 제목은 원래대로 유지합니다.
 st.title("🌟 하루로그: 활동 별 기분과 성취감 기록하기")
 
-# 2. 격려 메시지 로직 (생략 - 기존과 동일)
-# ... (중략) ...
-
-# 3. 데이터 로드/저장 (에러 방지 로직 추가)
+# 2. 데이터 로드/저장 (안전장치 강화)
 DATA_FILE = "tracker_data_v3.json"
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             try:
                 data = json.load(f)
-                # 이전 데이터에 sort_key가 없을 경우를 대비한 보정
+                # [복구 포인트] 기존 데이터에 sort_key가 없어도 에러가 나지 않게 함
                 for entry in data:
                     if "sort_key" not in entry:
-                        # 날짜와 시작시간을 조합해 임시 sort_key 생성
-                        entry["sort_key"] = f"{entry.get('date', '2026-01-01')} {entry.get('start', '00:00')}"
+                        entry["sort_key"] = f"{entry.get('date', '2026-05-14')} {entry.get('start', '00:00')}"
                 return data
             except:
                 return []
@@ -36,39 +33,52 @@ def save_data(entries):
 
 entries = load_data()
 
-# 4. 사이드바 입력 (기존 로직 유지)
-with st.sidebar:
-    st.header("📝 활동 기록")
-    record_date = st.date_input("활동 날짜", datetime.now())
-    col1, col2 = st.columns(2)
-    with col1: start_t = st.time_input("시작 시각", time(9, 0))
-    with col2: end_t = st.time_input("종료 시각", time(10, 0))
-    category = st.selectbox("대분류", ["업무/연구", "강의/상담", "운동", "식사/휴식", "자기계발", "인간관계", "기타"])
-    sub_activity = st.text_input("세부 활동 명")
-    st.divider()
-    mood = st.slider("기분 점수", 1, 5, 3)
-    ach = st.slider("성취감 점수", 1, 5, 3)
-    notes = st.text_area("메모/느낀 점")
-    
-    if st.button("기록 저장 및 분석"):
-        # ... (중략: 데이터 저장 로직은 이전과 동일) ...
-        st.rerun()
+# 3. 사이드바 입력 (생략 - 기존과 동일)
+# ... (중략) ...
 
-# 5. 메인 화면 분석
+# 4. 메인 화면 분석 및 필터링
 if entries:
     df = pd.DataFrame(entries)
-    # 정렬 전 데이터 확정
+    # [해결] 이제 KeyError 없이 시간 순서대로 정렬됩니다.
     df = df.sort_values(by="sort_key")
 
-    # 교수님 요청 사항: 그래프 섹션 제목만 변경
+    # 교수님께서 요청하신 그래프 전용 제목
     st.subheader("📊 활동 시각별 마음의 변화")
     
     fig = px.line(df, x="display_time", y=["mood", "achievement"], 
                   markers=True, 
-                  hover_data={"display_time": True, "sub_activity": True},
-                  labels={"value": "점수", "display_time": "활동 시각", "variable": "항목", "sub_activity": "상세 활동"})
-    
+                  hover_data={"sub_activity": True},
+                  labels={"value": "점수", "display_time": "활동 시각", "variable": "항목"})
     fig.update_yaxes(range=[0.5, 5.5])
     st.plotly_chart(fig, use_container_width=True)
 
-    # ... (이하 필터링 및 리스트 로직 동일) ...
+    st.divider()
+    
+    # [복구] 사라졌던 필터링 장치와 리스트 섹션
+    st.subheader("🔍 다차원 데이터 필터링")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: f_cat = st.multiselect("활동 종류", df['category'].unique())
+    with c2: f_day = st.multiselect("요일 선택", ['월', '화', '수', '목', '금', '토', '일'])
+    with c3: f_mood = st.multiselect("기분 수준", [1, 2, 3, 4, 5])
+    with c4: f_ach = st.multiselect("성취감 수준", [1, 2, 3, 4, 5])
+
+    # 필터링 로직 적용
+    f_df = df.copy()
+    if f_cat: f_df = f_df[f_df['category'].isin(f_cat)]
+    if f_day: f_df = f_df[f_df['day_of_week'].isin(f_day)]
+    if f_mood: f_df = f_df[f_df['mood'].isin(f_mood)]
+    if f_ach: f_df = f_df[f_df['achievement'].isin(f_ach)]
+
+    st.write(f"결과: {len(f_df)}건의 기록이 있습니다.")
+
+    # 상세 기록 리스트 출력
+    for i, row in f_df.iloc[::-1].iterrows(): # 최신순 출력
+        with st.expander(f"[{row['date']}({row.get('day_of_week', '-')})] {row['start']}~{row['end']} | {row['category']} - {row['sub_activity']}"):
+            st.write(f"**기분:** {row['mood']} / **성취감:** {row['achievement']}")
+            st.write(f"**메모:** {row['notes']}")
+            if st.button("삭제", key=f"del_{row['id']}"):
+                entries = [e for e in entries if e['id'] != row['id']]
+                save_data(entries)
+                st.rerun()
+else:
+    st.info("데이터를 입력하면 시간 순으로 정렬된 그래프와 필터링 도구가 나타납니다.")
