@@ -6,11 +6,11 @@ import random
 from datetime import datetime, time
 import plotly.express as px
 
-# 1. 페이지 설정 및 아이콘 수정
+# 1. 페이지 설정 및 제목 수정
 st.set_page_config(page_title="하루로그", layout="wide")
-st.title("☀️ 하루로그: 활동 별 기분과 성취감 기록하기")
+st.title("☀️ 하루로그: 활동기록")
 
-# 2. 격려 메시지
+# 2. 교수님의 세분화된 격려 메시지 (보존 완료)
 REFLECTION_MESSAGES = {
     ("high", "high"): ["오늘은 기분도 좋고 성취감도 높은 날이었네요. 이런 순간을 잘 기억해 두세요.", "에너지가 넘쳤던 하루였군요. 스스로를 충분히 칭찬해도 좋습니다."],
     ("high", "mid"): ["기분 좋게 활동을 마쳤군요. 꾸준히 이어가다 보면 성취감도 자연스럽게 따라올 거예요.", "오늘 활동이 즐거웠다면 그것만으로도 충분해요."],
@@ -48,8 +48,16 @@ def save_data(entries):
 
 entries = load_data()
 
-# 4. 사이드바 입력창 (복구 완료)
+# 4. 사이드바: 사용자 확인 및 기록 입력
 with st.sidebar:
+    st.header("👤 사용자 확인")
+    user_id = st.text_input("학번 또는 ID를 입력하세요", placeholder="예: 20260123")
+    
+    if not user_id:
+        st.info("💡 왼쪽 칸에 ID를 입력하시면 기록을 시작할 수 있습니다.")
+        st.stop()
+
+    st.divider()
     st.header("📝 활동 기록")
     record_date = st.date_input("활동 날짜", datetime.now())
     col1, col2 = st.columns(2)
@@ -65,10 +73,13 @@ with st.sidebar:
     if st.button("기록 저장 및 분석"):
         weekdays = ['월', '화', '수', '목', '금', '토', '일']
         activity_dt = datetime.combine(record_date, start_t)
+        
+        # 교수님의 세분화 코멘트 추출 로직
         m_bucket, a_bucket = get_bucket(mood), get_bucket(ach)
         reflection = random.choice(REFLECTION_MESSAGES.get((m_bucket, a_bucket), ["오늘도 수고하셨습니다."]))
         
         new_entry = {
+            "user_id": user_id, # 개인 식별 추가
             "id": datetime.now().timestamp(),
             "sort_key": activity_dt.strftime("%Y-%m-%d %H:%M"),
             "date": record_date.strftime("%Y-%m-%d"),
@@ -91,41 +102,44 @@ with st.sidebar:
 # 5. 메인 화면 분석
 if entries:
     df = pd.DataFrame(entries)
-    df = df.sort_values(by="sort_key")
+    # 현재 사용자 ID 데이터만 필터링
+    my_df = df[df['user_id'] == user_id].sort_values(by="sort_key")
 
-    st.subheader("🌙 활동 시각별 마음의 변화")
-    fig = px.line(df, x="display_time", y=["mood", "achievement"], 
-                  markers=True, 
-                  hover_data={"display_time": True, "sub_activity": True},
-                  labels={"value": "점수", "display_time": "활동 시각", "variable": "항목"})
-    fig.update_yaxes(range=[0.5, 5.5])
-    st.plotly_chart(fig, use_container_width=True)
+    if not my_df.empty:
+        st.subheader(f"🌙 {user_id}님의 마음의 변화")
+        fig = px.line(my_df, x="display_time", y=["mood", "achievement"], 
+                      markers=True, 
+                      hover_data={"display_time": True, "sub_activity": True},
+                      labels={"value": "점수", "display_time": "활동 시각", "variable": "항목"})
+        fig.update_yaxes(range=[0.5, 5.5])
+        st.plotly_chart(fig, use_container_width=True)
 
-    st.divider()
-    
-    st.subheader("🔍 다차원 데이터 필터링")
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: f_cat = st.multiselect("활동 종류", df['category'].unique())
-    with c2: f_day = st.multiselect("요일 선택", ['월', '화', '수', '목', '금', '토', '일'])
-    with c3: f_mood = st.multiselect("기분 수준", [1, 2, 3, 4, 5])
-    with c4: f_ach = st.multiselect("성취감 수준", [1, 2, 3, 4, 5])
+        st.divider()
+        st.subheader("🔍 다차원 데이터 필터링")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: f_cat = st.multiselect("활동 종류", my_df['category'].unique())
+        with c2: f_day = st.multiselect("요일 선택", ['월', '화', '수', '목', '금', '토', '일'])
+        with c3: f_mood = st.multiselect("기분 수준", [1, 2, 3, 4, 5])
+        with c4: f_ach = st.multiselect("성취감 수준", [1, 2, 3, 4, 5])
 
-    f_df = df.copy()
-    if f_cat: f_df = f_df[f_df['category'].isin(f_cat)]
-    if f_day: f_df = f_df[f_df['day_of_week'].isin(f_day)]
-    if f_mood: f_df = f_df[f_df['mood'].isin(f_mood)]
-    if f_ach: f_df = f_df[f_df['achievement'].isin(f_ach)]
+        f_df = my_df.copy()
+        if f_cat: f_df = f_df[f_df['category'].isin(f_cat)]
+        if f_day: f_df = f_df[f_df['day_of_week'].isin(f_day)]
+        if f_mood: f_df = f_df[f_df['mood'].isin(f_mood)]
+        if f_ach: f_df = f_df[f_df['achievement'].isin(f_ach)]
 
-    st.write(f"결과: {len(f_df)}건의 기록이 있습니다.")
+        st.write(f"결과: {len(f_df)}건의 기록이 있습니다.")
 
-    for i, row in f_df.iloc[::-1].iterrows():
-        with st.expander(f"[{row['date']}({row.get('day_of_week', '-')})] {row['start']}~{row['end']} | {row['category']} - {row['sub_activity']}"):
-            st.write(f"**기분:** {row['mood']} / **성취감:** {row['achievement']}")
-            st.write(f"**메모:** {row['notes']}")
-            st.info(f"💡 {row['reflection']}")
-            if st.button("삭제", key=f"del_{row['id']}"):
-                entries = [e for e in entries if e['id'] != row['id']]
-                save_data(entries)
-                st.rerun()
+        for i, row in f_df.iloc[::-1].iterrows():
+            with st.expander(f"[{row['date']}({row.get('day_of_week', '-')})] {row['start']}~{row['end']} | {row['category']} - {row['sub_activity']}"):
+                st.write(f"**기분:** {row['mood']} / **성취감:** {row['achievement']}")
+                st.write(f"**메모:** {row['notes']}")
+                st.info(f"💡 {row.get('reflection', '오늘도 수고하셨습니다.')}") # 교수님의 메시지 출력
+                if st.button("삭제", key=f"del_{row['id']}"):
+                    entries = [e for e in entries if e['id'] != row['id']]
+                    save_data(entries)
+                    st.rerun()
+    else:
+        st.info(f"'{user_id}'님으로 등록된 기록이 없습니다. 왼쪽에서 첫 활동을 남겨보세요!")
 else:
     st.info("왼쪽 사이드바에서 오늘 첫 활동을 기록해 보세요!")
