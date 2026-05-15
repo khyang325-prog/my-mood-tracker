@@ -67,7 +67,15 @@ with st.sidebar:
     with col1: start_t = st.time_input("시작 시각", time(9, 0))
     with col2: end_t = st.time_input("종료 시각", time(10, 0))
     
-    category = st.selectbox("대분류", ["업무/연구", "강의/상담", "운동", "식사/휴식", "자기계발", "인간관계", "기타"])
+    category = st.selectbox("대분류", [
+        "🏠 일상생활", 
+        "✍️ 업무/공부", 
+        "🏃 신체활동/운동", 
+        "🍱 식사/휴식", 
+        "🎨 취미/여가", 
+        "🤝 만남/소통", 
+        "✨ 기타"
+    ])
     sub_activity = st.text_input("세부 활동 명")
     
     st.divider()
