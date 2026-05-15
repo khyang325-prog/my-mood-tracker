@@ -161,4 +161,18 @@ if entries:
     else:
         st.info(f"'{user_id}'님으로 등록된 기록이 없습니다. 왼쪽에서 첫 기록을 남겨보세요!")
 else:
-    st.info("왼쪽 사이드바에서 오늘 첫 활동을 기록해 보세요!")
+        st.info("왼쪽 사이드바에서 오늘 첫 활동을 기록해 보세요!")
+
+st.divider()
+with st.expander("📊 관리자용 데이터 전체 백업"):
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            data_str = f.read()
+            st.download_button(
+                label="📥 전체 기록 다운로드 (JSON)",
+                data=data_str,
+                file_name="mood_tracker_backup.json",
+                mime="application/json"
+            )
+    else:
+        st.info("아직 저장된 데이터 파일이 없습니다.")
