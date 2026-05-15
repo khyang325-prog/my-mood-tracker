@@ -79,8 +79,8 @@ with st.sidebar:
     sub_activity = st.text_input("세부 활동 명")
     
     st.divider()
-    mood = st.slider("기분 점수", 1, 5, 3)
-    ach = st.slider("성취감 점수", 1, 5, 3)
+    mood = st.slider("🔴 기분 점수", 1, 5, 3)
+    ach = st.slider("🔵 성취감 점수", 1, 5, 3)
     notes = st.text_area("메모/느낀 점")
     
     if st.button("기록 저장 및 분석"):
