@@ -119,12 +119,15 @@ if entries:
     my_df = df[df['user_id'] == user_id].sort_values(by="sort_key")
 
     if not my_df.empty:
-        st.subheader(f"🌙 {user_id}님의 마음 지도")
+        st.subheader(f"🌙 {user_id}님의 마음 지도 (기분 & 성취감)")
+        
         fig = px.line(my_df, x="display_time", y=["mood", "achievement"], 
                       markers=True, 
                       hover_data={"sub_activity": True},
                       labels={"value": "점수", "display_time": "활동 시각", "variable": "항목"},
-                      color_discrete_map={"mood": "#1f77b4", "achievement": "#ff7f0e"})
+                      # 교수님 제안 반영: 기분(mood)은 빨간색, 성취감(achievement)은 파란색
+                      color_discrete_map={"mood": "#EF553B", "achievement": "#636EFA"})
+        
         fig.update_layout(hovermode="x unified")
         fig.update_yaxes(range=[0.5, 5.5])
         st.plotly_chart(fig, use_container_width=True)
