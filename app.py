@@ -119,7 +119,7 @@ if entries:
     my_df = df[df['user_id'] == user_id].sort_values(by="sort_key")
 
     if not my_df.empty:
-        st.markdown(f"### 🍀 {user_id}님의 마음지도  \n<sub style='font-size: 16px; color: #555555; font-weight: normal;'>(기분 & 성취감)</sub>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='font-size: 20px; margin-bottom: 0px;'>🍀 {user_id}님의 마음 지도</h3><div style='font-size: 14px; color: #555555; margin-left: 28px; margin-top: 2px;'>(기분 & 성취감)</div>", unsafe_allow_html=True)
         
         fig = px.line(my_df, x="display_time", y=["mood", "achievement"], 
                       markers=True, 
