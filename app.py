@@ -8,7 +8,7 @@ import plotly.express as px
 
 # 1. 페이지 설정 및 제목 수정
 st.set_page_config(page_title="하루로그", layout="wide")
-st.title("☀️ 하루로그: 활동기록")
+st.markdown("<h2 style='font-size: 24px; margin-bottom: 5px;'>🌷 하루로그 v1.0 <span style='font-size: 14px; color: gray; font-weight: normal;'>by 그냥쌤</span></h2>", unsafe_allow_html=True)
 
 # 2. 교수님의 세분화된 격려 메시지 (완벽 이식)
 REFLECTION_MESSAGES = {
